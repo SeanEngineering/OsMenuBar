@@ -7,20 +7,25 @@
 
 import Foundation
 import SwiftUI
+import AppKit
 
 class ApplicationMenu: NSObject {
-    @State var countDownTimer: Float = 0.0
     let menu = NSMenu()
-    
+    let model = CountdownModel()
+
     func createMenu() -> NSMenu {
-        let contentView = ContentView(countDownTimer: $countDownTimer);
+        let contentView = ContentView(countDownTimer: model)
         let topView = NSHostingController(rootView: contentView)
-        topView.view.frame.size = CGSize(width: 300, height: 500)
-        
+
+        topView.view.translatesAutoresizingMaskIntoConstraints = false
+        let fittingSize = topView.view.fittingSize
+        topView.view.setFrameSize(fittingSize)
+
         let customMenuItem = NSMenuItem()
         customMenuItem.view = topView.view
         menu.addItem(customMenuItem)
         menu.addItem(NSMenuItem.separator())
+
         return menu
     }
 }

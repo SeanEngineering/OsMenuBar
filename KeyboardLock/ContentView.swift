@@ -11,11 +11,12 @@ struct ContentView: View {
 //    Create a basic app that can lock the keyboard
 //    Also allow the user to view their cpu and memory usage
 //    Create a timer view in the menubar also
-    @Binding var countDownTimer: Float
-    @State private var isKeyboardLocked: Bool = false
-    @State private var isKeyboardHidden: Bool = false
+    @ObservedObject var countDownTimer: CountdownModel
+    @State var isKeyboardLocked: Bool = false
+    @State var timerStarted: Bool = false
     @State var progressValue: Float = 0.0
-    @AppStorage("lockType") var lockType: LockType = .unlocked
+    @State var cpuUsage: Float = 0.0
+    @State var memoryUsage: Float = 0.0
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -24,18 +25,32 @@ struct ContentView: View {
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
             }
             HStack(alignment: .center){
+                Button(action: {
+                    self.timerStarted.toggle()
+                    if timerStarted {
+                        countDownTimer.startTimer()
+                    } else {
+                        countDownTimer.stopTimer()
+                    }
+                }) {
+                    Text(timerStarted ? "Stop Timer" : "Start Timer")
+                }
                 TextField("Insert the timer value",
                           text: Binding(
-                            get: {String(countDownTimer)},
-                            set: { newValue in if let floatValue = Float((newValue as NSString).trimmingCharacters(in: .whitespacesAndNewlines)) { self.countDownTimer = floatValue }
+                            get: {String(countDownTimer.timeRemaining)},
+                            set: { newValue in if let floatValue = Float((newValue as NSString).trimmingCharacters(in: .whitespacesAndNewlines)) { self.countDownTimer.timeRemaining = floatValue }
                             })).textFieldStyle( RoundedBorderTextFieldStyle())
                     .padding()
-                                
             }
             HStack(alignment: .center){
-            
                 ProgressBarCircle(progress: self.$progressValue).padding(20).onAppear(){
-                    self.progressValue = 0.3
+                    self.progressValue = 0.2
+                }
+                ProgressBarCircle(progress: self.$cpuUsage).padding(20).onAppear(){
+                    self.cpuUsage = 0.1
+                }
+                ProgressBarCircle(progress: self.$memoryUsage).padding(20).onAppear(){
+                    self.memoryUsage = 0.4
                 }
                 
             }
@@ -45,6 +60,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    @State @Previewable var countDownTimer: Float = 0.0
-    ContentView(countDownTimer: $countDownTimer)
+    let model = CountdownModel()
+    ContentView(countDownTimer: model)
 }

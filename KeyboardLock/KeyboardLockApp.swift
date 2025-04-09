@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 @main
 struct KeyboardLockApp: App {
@@ -19,31 +20,32 @@ struct KeyboardLockApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) var instance: AppDelegate!
-    var timer: Timer?
+    var cancellable: AnyCancellable?
+
     lazy var statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let menu = ApplicationMenu()
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.instance = self
-    
-        timer = Timer.scheduledTimer(timeInterval: 1.0, target: self,
-                                     selector:#selector(updateTime), userInfo: nil, repeats: true)
-        RunLoop.main.add(timer!, forMode: .common) // Forcing update on timer
+
         let testImage = NSImage(systemSymbolName: "keyboard", accessibilityDescription: nil)
-        statusBarItem.button?.image = testImage;
-        statusBarItem.button?.imagePosition = .imageLeading
+        statusBarItem.button?.image = testImage
+        statusBarItem.button?.imagePosition = .imageTrailing
+
         statusBarItem.menu = menu.createMenu()
+
+        cancellable = menu.model.$timeRemaining
+            .receive(on: RunLoop.main)
+            .sink { [weak self] newValue in
+                // Format timeRemaining to HH:MM:SS
+                let hours = Int(newValue) / 3600
+                let minutes = (Int(newValue) % 3600) / 60
+                let seconds = Int(newValue) % 60
+                self?.statusBarItem.button?.title = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+            }
     }
-    
-    @objc func updateTime(){
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        let timeString = formatter.string(from: Date())
-        
-        statusBarItem.button?.title = timeString
-    }
-    
+
     func applicationWillTerminate(_ notification: Notification) {
-        timer?.invalidate()
+        cancellable?.cancel() // Stop observing when app terminates
     }
 }
